@@ -34,5 +34,4 @@ func ExampleCountryTable() {
 		panic(err)
 	}
 	table.Append(values)
-	return nil
 }
