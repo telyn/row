@@ -1,6 +1,8 @@
 olekukonko/tablewriter helper
 =============================
 
+[![Build Status](https://travis-ci.org/telyn/row.svg?branch=develop)](https://travis-ci.org/telyn/row) [![Coverage Status](https://coveralls.io/repos/github/telyn/row/badge.svg?branch=master)](https://coveralls.io/github/telyn/row?branch=master)
+
 row is a tiny library to help make rows for olekukonko/tablewriter tables (but it can also be used any time you want to select a bunch of fields of misc types from a struct and get a slice of strings)
 
 how to use
