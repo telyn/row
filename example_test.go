@@ -3,6 +3,7 @@ package row_test
 import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/telyn/row"
+	"os"
 )
 
 // Country represents a country
@@ -20,7 +21,7 @@ func (c Country) NumCities() int {
 
 // Output:
 // TODO include output
-func ExampleCountryTable() {
+func ExampleCountryTable() error {
 	fields := []string{"Name", "Population", "NumCities"}
 
 	table := tablewriter.NewWriter(os.Stdout)
@@ -28,5 +29,10 @@ func ExampleCountryTable() {
 
 	country := Country{"Argentine Republic", 4341700, 0.836, []string{"Buenos Aires", "Córdoba", "Rosario", "Mendoza", "La Plata"}}
 
-	table.Append(row.From(country, fields))
+	values, err := row.From(country, fields)
+	if err != nil {
+		return err
+	}
+	table.Append(values)
+	return nil
 }

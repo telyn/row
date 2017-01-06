@@ -1,4 +1,4 @@
-package prettyprint
+package row
 
 import (
 	"errors"
@@ -7,8 +7,8 @@ import (
 	"strconv"
 )
 
-// ToTableRow converts the given object into a row for a olekukonko/tablewriter table, using reflection. fields should be an array of (exported) fields on obj which are strings, ints, bools, fmt.Stringers, or slices thereof, or are methods taking no arguments which return a single value of the same, or a single value of the same and an error.
-func ToTableRow(obj interface{}, fields []string) (row []string, err error) {
+// From converts the given object into a row for a olekukonko/tablewriter table, using reflection. fields should be an array of (exported) fields on obj which are strings, ints, bools, fmt.Stringers, or slices thereof, or are methods taking no arguments which return a single value of the same, or a single value of the same and an error.
+func From(obj interface{}, fields []string) (row []string, err error) {
 	row = make([]string, len(fields))
 
 	value := reflect.ValueOf(obj)
