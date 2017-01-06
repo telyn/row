@@ -21,7 +21,7 @@ func (c Country) NumCities() int {
 
 // Output:
 // TODO include output
-func ExampleCountryTable() error {
+func ExampleCountryTable() {
 	fields := []string{"Name", "Population", "NumCities"}
 
 	table := tablewriter.NewWriter(os.Stdout)
@@ -31,7 +31,7 @@ func ExampleCountryTable() error {
 
 	values, err := row.From(country, fields)
 	if err != nil {
-		return err
+		panic(err)
 	}
 	table.Append(values)
 	return nil
