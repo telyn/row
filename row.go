@@ -13,12 +13,20 @@ func From(obj interface{}, fields []string) (row []string, err error) {
 
 	value := reflect.ValueOf(obj)
 	for i, field := range fields {
-		// check field starts with capital to ensure we only use exported types
+		// TODO(telyn): check field starts with capital to ensure we only use exported types
 		v := value.FieldByName(field)
-		if !v.IsValid() {
+		str := ""
+		if v.Kind() == reflect.Invalid {
 			v = value.MethodByName(field)
+			if v.Kind() == reflect.Invalid {
+				str = "no field called " + field
+			} else {
+				str, err = methodToString(v)
+			}
+		} else {
+			str, err = valueToString(v)
 		}
-		str, err := valueToString(v)
+
 		if err != nil {
 			return nil, err
 		}
@@ -42,6 +50,9 @@ func valueToString(v reflect.Value) (string, error) {
 		// format float at max precision losing without trailing zeroes
 		return strconv.FormatFloat(v.Float(), 'f', 2, 64), nil
 	case reflect.Ptr:
+		if v.IsNil() {
+			return "nil", nil
+		}
 		return valueToString(reflect.Indirect(v))
 	case reflect.Invalid:
 		// oh shit ma dudes
@@ -51,7 +62,7 @@ func valueToString(v reflect.Value) (string, error) {
 			ret := v.MethodByName("String").Call([]reflect.Value{})
 			return ret[0].Interface().(string), nil
 		}
-		return "", errors.New("v wasn't a type we were ready for")
+		return "", fmt.Errorf("v (%v) (%T) wasn't a type we were ready for", v.Interface(), v.Interface())
 	}
 }
 

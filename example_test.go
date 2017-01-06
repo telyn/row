@@ -19,7 +19,6 @@ func (c Country) NumCities() int {
 	return len(c.Cities)
 }
 
-// Output:
 // TODO include output
 func ExampleCountryTable() {
 	fields := []string{"Name", "Population", "NumCities"}
@@ -34,4 +33,11 @@ func ExampleCountryTable() {
 		panic(err)
 	}
 	table.Append(values)
+	table.Render()
+	// Output:
+	// +--------------------+------------+-----------+
+	// |        NAME        | POPULATION | NUMCITIES |
+	// +--------------------+------------+-----------+
+	// | Argentine Republic |    4341700 |         5 |
+	// +--------------------+------------+-----------+
 }
