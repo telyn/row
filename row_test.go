@@ -2,6 +2,7 @@ package row
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -38,6 +39,22 @@ func TestValueToString(t *testing.T) {
 		if str != test.String {
 			t.Errorf("testValueToString %d failed: expecting '%s', got '%s'", i, test.String, str)
 		}
+	}
+
+	str, err := valueToString(reflect.ValueOf(complex(3.4, 5.6)))
+	if err == nil {
+		t.Fatalf("testValueToString complex didn't return error.")
+	}
+	if str != "" {
+		t.Fatalf("testValueToString complex didn't return empty string: %v", str)
+	}
+
+	str, err = valueToString(reflect.Value{})
+	if err == nil {
+		t.Fatalf("testValueToString ZeroValue didn't return error.")
+	}
+	if str != "" {
+		t.Fatalf("testValueToString ZeroValue didn't return empty string: %v", str)
 	}
 
 }
@@ -94,6 +111,15 @@ func (s structWithMethods) StringerPtrNoError() (*testStringer, error) {
 func (s structWithMethods) StringerPtrError() (*testStringer, error) {
 	return &testStringer{}, errors.New("float with error")
 }
+func (s structWithMethods) BadFuncTypeTooManyRets() (string, error, error) {
+	return "result", errors.New("error 1"), errors.New("error 2")
+}
+func (s structWithMethods) BadFuncTakesArguments(v string) string {
+	return v
+}
+func (s structWithMethods) BadFunc2ndRetNotError() (string, string) {
+	return "result one", "result two"
+}
 
 func TestMethodToString(t *testing.T) {
 	s := structWithMethods{}
@@ -117,6 +143,9 @@ func TestMethodToString(t *testing.T) {
 		{"StringerPtr", "test stringer", false},
 		{"StringerPtrNoError", "test stringer", false},
 		{"StringerPtrError", "", true},
+		{"BadFuncTypeTooManyRets", "", true},
+		{"BadFuncTakesArguments", "", true},
+		{"BadFunc2ndRetNotError", "", true},
 	}
 	sVal := reflect.ValueOf(s)
 	for i, test := range tests {
@@ -132,4 +161,72 @@ func TestMethodToString(t *testing.T) {
 			t.Errorf("testMethodToString %d (%s) failed: expecting '%s', got '%s'", i, test.Method, test.String, str)
 		}
 	}
+}
+
+type Craftiness int
+
+const (
+	Pedestrian Craftiness = iota
+	Crafty
+	Racoonesque
+)
+
+func (c Craftiness) String() string {
+	switch c {
+	case Pedestrian:
+		return "Pedestrian"
+	case Crafty:
+		return "Crafty"
+	case Racoonesque:
+		return "Racoon"
+	}
+	return fmt.Sprintf("%d craftiness", c)
+}
+
+func TestRowFrom(t *testing.T) {
+
+	testObj := struct {
+		Colour     string
+		Weight     int
+		Gamma      float32
+		Void       *string
+		Craftiness Craftiness
+		Complexity complex64
+	}{
+		Colour:     "Green",
+		Weight:     45,
+		Gamma:      0.3,
+		Void:       nil,
+		Craftiness: Crafty,
+		Complexity: complex(3.4, 4.5),
+	}
+
+	tests := []struct {
+		In  []string
+		Out []string
+	}{
+		{
+			In:  []string{"Gamma", "Craftiness", "PowerConsumption", "Void"},
+			Out: []string{"0.30", "Crafty", "no field called PowerConsumption", "nil"},
+		},
+	}
+
+	for i, test := range tests {
+		out, err := From(testObj, test.In)
+		if err != nil {
+			t.Errorf("TestRowFrom %d (%v) ERROR: %s", i, test.In, err.Error())
+		}
+		if !reflect.DeepEqual(out, test.Out) {
+			t.Errorf("TestRowFrom %d (%v) FAIL:\r\n%#v\r\n%#v", i, test.In, out, test.Out)
+		}
+	}
+
+	out, err := From(testObj, []string{"Complexity"})
+	if err == nil {
+		t.Errorf("TestRowFrom Complexity NO ERROR")
+	}
+	if !reflect.DeepEqual(out, []string(nil)) {
+		t.Errorf("TestRowFrom Complexity FAIL:\r\n%#v", out)
+	}
+
 }

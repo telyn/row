@@ -39,6 +39,14 @@ func From(obj interface{}, fields []string) (row []string, err error) {
 
 // valueToString will convert v to a string by ANY MEANS NECESSARY (either it already is a string, or
 func valueToString(v reflect.Value) (string, error) {
+	if v.Kind() == reflect.Invalid {
+		// oh shit ma dudes
+		return "", errors.New("v wasn't a valid value!")
+	}
+	if isStringer(v) {
+		ret := v.MethodByName("String").Call([]reflect.Value{})
+		return ret[0].Interface().(string), nil
+	}
 	switch v.Kind() {
 	case reflect.String:
 		return v.String(), nil
@@ -54,14 +62,7 @@ func valueToString(v reflect.Value) (string, error) {
 			return "nil", nil
 		}
 		return valueToString(reflect.Indirect(v))
-	case reflect.Invalid:
-		// oh shit ma dudes
-		return "", errors.New("v wasn't a valid value!")
 	default:
-		if isStringer(v) {
-			ret := v.MethodByName("String").Call([]reflect.Value{})
-			return ret[0].Interface().(string), nil
-		}
 		return "", fmt.Errorf("v (%v) (%T) wasn't a type we were ready for", v.Interface(), v.Interface())
 	}
 }
