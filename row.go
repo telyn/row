@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 // From converts the given object into a row for a olekukonko/tablewriter table, using reflection. fields should be an array of (exported) fields on obj which are strings, ints, bools, fmt.Stringers, or slices thereof, or are methods taking no arguments which return a single value of the same, or a single value of the same and an error.
@@ -12,6 +13,9 @@ func From(obj interface{}, fields []string) (row []string, err error) {
 	row = make([]string, len(fields))
 
 	value := reflect.ValueOf(obj)
+	if value.Kind() == reflect.Ptr {
+		value = value.Elem()
+	}
 	for i, field := range fields {
 		// TODO(telyn): check field starts with capital to ensure we only use exported types
 		v := value.FieldByName(field)
@@ -54,17 +58,30 @@ func FieldsFrom(obj interface{}) (fields []string) {
 }
 
 func fieldsFromType(t reflect.Type) (fields []string) {
+	fields = make([]string, 0)
+	// grab all the field-y methods first, because we indirect later and lose access to the pointery ones
+	for i := 0; i < t.NumMethod(); i++ {
+		m := t.Method(i)
+		//fmt.Printf("testing %s..", m.Name)
+		err := methodIsField(m.Type, true)
+		if err == nil {
+			//	fmt.Println("yes")
+			fields = append(fields, m.Name)
+		} else {
+			//	fmt.Println(err)
+		}
+	}
+	// now indirect if this is a pointery type
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
 	if t.Kind() != reflect.Struct {
 		return []string{}
 	}
-	numFields := t.NumField()
-	fields = make([]string, numFields)
-	for i := 0; i < numFields; i++ {
+	// loop over all struct fields
+	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
-		fields[i] = f.Name
+		fields = append(fields, f.Name)
 	}
 	return
 }
@@ -89,13 +106,23 @@ func valueToString(v reflect.Value) (string, error) {
 	case reflect.Float32, reflect.Float64:
 		// format float at max precision losing without trailing zeroes
 		return strconv.FormatFloat(v.Float(), 'f', 2, 64), nil
+	case reflect.Array, reflect.Slice:
+		output := make([]string, v.Len())
+		for i := 0; i < v.Len(); i++ {
+			elem, err := valueToString(v.Index(i))
+			if err != nil {
+				return "", err
+			}
+			output[i] = elem
+		}
+		return strings.Join(output, "\n"), nil
 	case reflect.Ptr:
 		if v.IsNil() {
 			return "nil", nil
 		}
-		return valueToString(reflect.Indirect(v))
+		return valueToString(v.Elem())
 	default:
-		return "", fmt.Errorf("v (%v) (%T) wasn't a type we were ready for", v.Interface(), v.Interface())
+		return "", fmt.Errorf("v (%v) (%T) wasn't a type we were ready for. Its kind is %s", v.Interface(), v.Interface(), v.Kind())
 	}
 }
 
@@ -105,28 +132,40 @@ func isStringer(v reflect.Value) bool {
 	return v.Type().Implements(stringerType)
 }
 
-func methodToString(m reflect.Value) (string, error) {
-	methodType := m.Type()
-	if methodType.NumIn() != 0 {
-		return "", errors.New("Wrong number of parameters in methodToString")
+// if error==nil, method is field. if isReceiver is true, expects there to be a receiver (so 1 arg), if not, 0 args
+func methodIsField(m reflect.Type, isReceiver bool) error {
+	args := 0
+	if isReceiver {
+		args = 1
+	}
+	if m.NumIn() != args {
+		return errors.New("Wrong number of parameters in methodToString")
 	}
 	// make sure this method is either func() T or func() T, err
-	nOuts := methodType.NumOut()
+	nOuts := m.NumOut()
 	if nOuts == 2 {
-		retType := methodType.Out(1)
+		retType := m.Out(1)
 		errorType := reflect.TypeOf((*error)(nil)).Elem()
 
 		if !retType.Implements(errorType) {
-			return "", errors.New("2nd value returned from method is not an error")
+			return errors.New("2nd value returned from method is not an error")
 		}
 	}
 	if nOuts != 1 && nOuts != 2 {
-		return "", errors.New("Method returns wrong number of values")
+		return errors.New("Method returns wrong number of values")
+	}
+	return nil
+}
+
+func methodToString(m reflect.Value) (string, error) {
+	err := methodIsField(m.Type(), false)
+	if err != nil {
+		return "", err
 	}
 
 	ret := m.Call([]reflect.Value{})
 	// check error first
-	if nOuts == 2 {
+	if m.Type().NumOut() == 2 {
 		err := ret[1].Interface()
 		if err != nil {
 			errErr := err.(error)
