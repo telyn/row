@@ -37,6 +37,32 @@ func From(obj interface{}, fields []string) (row []string, err error) {
 
 }
 
+// FieldsFrom lists all the fields available for the given object, and can be fed to From too.
+func FieldsFrom(obj interface{}) (fields []string) {
+	value := reflect.ValueOf(obj)
+	t := value.Type()
+	switch t.Kind() {
+	case reflect.Array, reflect.Slice:
+		return fieldsFromType(t.Elem())
+	case reflect.Struct:
+		return fieldsFromType(t)
+	}
+	return []string{}
+}
+
+func fieldsFromType(t reflect.Type) (fields []string) {
+	if t.Kind() != reflect.Struct {
+		return []string{}
+	}
+	numFields := t.NumField()
+	fields = make([]string, numFields)
+	for i := 0; i < numFields; i++ {
+		f := t.Field(i)
+		fields[i] = f.Name
+	}
+	return
+}
+
 // valueToString will convert v to a string by ANY MEANS NECESSARY (either it already is a string, or
 func valueToString(v reflect.Value) (string, error) {
 	if v.Kind() == reflect.Invalid {

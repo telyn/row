@@ -183,6 +183,30 @@ func (c Craftiness) String() string {
 	return fmt.Sprintf("%d craftiness", c)
 }
 
+func TestFieldsFrom(t *testing.T) {
+	testObj := struct {
+		Colour     string
+		Weight     int
+		Gamma      float32
+		Void       *string
+		Craftiness Craftiness
+		Complexity complex64
+	}{
+		Colour:     "Green",
+		Weight:     45,
+		Gamma:      0.3,
+		Void:       nil,
+		Craftiness: Crafty,
+		Complexity: complex(3.4, 4.5),
+	}
+
+	fields := FieldsFrom(testObj)
+	expected := []string{"Colour", "Weight", "Gamma", "Void", "Craftiness", "Complexity"}
+	if !reflect.DeepEqual(expected, fields) {
+		t.Errorf("TestFieldsFrom FAIL: \r\n expected: %#v\r\n actual:  %#v", expected, fields)
+	}
+}
+
 func TestRowFrom(t *testing.T) {
 
 	testObj := struct {
