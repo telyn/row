@@ -41,6 +41,9 @@ func From(obj interface{}, fields []string) (row []string, err error) {
 func FieldsFrom(obj interface{}) (fields []string) {
 	value := reflect.ValueOf(obj)
 	t := value.Type()
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
 	switch t.Kind() {
 	case reflect.Array, reflect.Slice:
 		return fieldsFromType(t.Elem())
@@ -51,6 +54,9 @@ func FieldsFrom(obj interface{}) (fields []string) {
 }
 
 func fieldsFromType(t reflect.Type) (fields []string) {
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
 	if t.Kind() != reflect.Struct {
 		return []string{}
 	}
