@@ -17,6 +17,8 @@ func (ts testStringer) String() string {
 func TestValueToString(t *testing.T) {
 	someint := 6
 	somefloat := 342.23
+	var someNilPtr *int
+	var someNilStringer *testStringer
 	tests := []struct {
 		Value  interface{}
 		String string
@@ -29,6 +31,8 @@ func TestValueToString(t *testing.T) {
 		{&somefloat, "342.23"},
 		{testStringer{}, "test stringer"},
 		{&testStringer{}, "test stringer"},
+		{someNilPtr, "nil"},
+		{someNilStringer, "nil"},
 	}
 
 	for i, test := range tests {

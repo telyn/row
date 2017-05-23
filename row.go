@@ -92,7 +92,7 @@ func valueToString(v reflect.Value) (string, error) {
 		// oh shit ma dudes
 		return "", errors.New("v wasn't a valid value!")
 	}
-	if isStringer(v) {
+	if isStringer(v) && (reflect.Ptr != v.Kind() || !v.IsNil()) {
 		ret := v.MethodByName("String").Call([]reflect.Value{})
 		return ret[0].Interface().(string), nil
 	}
